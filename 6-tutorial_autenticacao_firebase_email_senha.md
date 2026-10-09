@@ -487,7 +487,7 @@ Abra no **Expo Go** pelo QR code (o celular precisa de internet) e confira:
 
 ## 10. Desafios
 
-1. Adicione um botão **Criar conta** na tela de login usando `createUserWithEmailAndPassword(auth, email, senha)`.
+1. Adicione um botão **Criar conta** na tela de login usando `createUserWithEmailAndPassword(auth, email, senha)`. A solução completa está no [Tutorial 6.1](6.1-tutorial_cadastro_usuarios_firebase.md).
 2. Adicione um link **Esqueci minha senha** com `sendPasswordResetEmail(auth, email)`.
 3. Crie uma quarta opção no menu (ex.: **Configurações**).
 4. Mostre as datas da tela **Sobre o usuário** no formato brasileiro com `new Date(...).toLocaleString('pt-BR')`.

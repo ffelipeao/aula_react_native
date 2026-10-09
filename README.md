@@ -23,6 +23,8 @@ Recomenda-se seguir os materiais na ordem abaixo:
 | 4 | [Navegação e SQLite](4-tutorial_projeto_expo_incremental_com_sqlite.md) | Aplicativo de produtos, banco local, pesquisa e CRUD completo |
 | 5 | [Novos campos e cadastro de usuários](5-tutorial_incluir_novos_campos_e_cadastro_usuario.md) | Evolução do banco, novos campos de produtos e CRUD de usuários |
 | 6 | [Autenticação com Firebase](6-tutorial_autenticacao_firebase_email_senha.md) | Novo app com login no Firebase, menu lateral (drawer), estilos externos e credenciais fora do Git |
+| 6.1 | [Cadastro de usuários no Firebase](6.1-tutorial_cadastro_usuarios_firebase.md) | Criar conta pelo app, cadastro de outros usuários pelo menu e nome do usuário |
+| 6.2 | [CRUD de produtos com Firestore](6.2-tutorial_crud_produtos_firestore.md) | Cloud Firestore, regras de segurança, cadastro, consulta, alteração e exclusão de produtos |
 
 ## 🧭 Trilha de aprendizagem
 
@@ -58,7 +60,7 @@ O primeiro tutorial orienta a instalação e a verificação dessas ferramentas.
 4. Discuta o resultado antes de avançar para o próximo conceito.
 5. Use os desafios finais como exercício individual ou atividade avaliativa.
 
-Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo desenvolvido no tutorial 4. O tutorial 6 começa um aplicativo novo, com autenticação Firebase.
+Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo desenvolvido no tutorial 4. O tutorial 6 começa um aplicativo novo, com autenticação Firebase, que é continuado nos tutoriais 6.1 e 6.2.
 
 ## 📂 Organização do repositório
 
@@ -70,6 +72,8 @@ Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo dese
 ├── 4-tutorial_projeto_expo_incremental_com_sqlite.md
 ├── 5-tutorial_incluir_novos_campos_e_cadastro_usuario.md
 ├── 6-tutorial_autenticacao_firebase_email_senha.md
+├── 6.1-tutorial_cadastro_usuarios_firebase.md
+├── 6.2-tutorial_crud_produtos_firestore.md
 └── README.md
 ```
 
