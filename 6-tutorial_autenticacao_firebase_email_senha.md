@@ -1,130 +1,164 @@
-# Tutorial — MeuCadastroDeProdutos com login pelo Firebase
+# Tutorial 6 — App com login no Firebase e menu lateral
 
-Vamos criar **um novo aplicativo**, chamado **MeuCadastroDeProdutos**, usando React Native e Expo. Ele terá uma tela de login por e-mail e senha e uma área interna para cadastrar, consultar e alterar produtos. Não é necessário copiar o projeto das aulas anteriores.
+Nesta aula vamos criar **um aplicativo novo**, chamado **MeuAppFirebase**, com:
 
-Para simplificar, usaremos apenas duas telas, exibidas conforme a sessão do usuário:
+- tela de **login** por e-mail e senha usando o **Firebase Authentication**;
+- tela **Início** exibida após o login;
+- **menu lateral** aberto pelo ícone de três barrinhas (☰) com as opções **Sobre o usuário** e **Contato**;
+- estilos em um **arquivo externo** (`src/styles/styles.js`);
+- credenciais do Firebase em um arquivo **`.env.local`**, que **não vai para o GitHub**.
 
 ```text
-Abrir app → verificar sessão → Login (entrar ou criar conta)
-                                  ↓
-                            Área de produtos
-                       cadastrar → listar → alterar
-                                  ↓
-                            Sair → Login
+Abrir app → Firebase verifica a sessão
+              ├── sem usuário → Login
+              └── com usuário → Início ☰ ── Sobre o usuário
+                                         └── Contato
 ```
 
-O **Firebase Authentication** cuida das contas e senhas. Os produtos ficam no **SQLite do dispositivo**, separados pelo identificador (`uid`) da conta. Não há sincronização dos produtos entre aparelhos neste exemplo.
+---
 
-> **Sobre o CSS externo:** React Native para Android e iOS usa estilos JavaScript, em vez de importar um `.css` convencional. Para facilitar a manutenção, todos os estilos deste tutorial ficam no arquivo externo `src/styles/styles.js`, usando `StyleSheet`. Assim, cores, tamanhos e espaçamentos podem ser alterados em um único lugar. Veja a [documentação de estilos do React Native](https://reactnative.dev/docs/style).
+## 1. Criar o projeto
 
-## 1. Criar o novo aplicativo
-
-Com Node.js LTS instalado, execute:
+No terminal, na pasta onde você guarda seus projetos:
 
 ```bash
-npx create-expo-app@latest MeuCadastroDeProdutos --template blank
-cd MeuCadastroDeProdutos
-npx expo install firebase @react-native-async-storage/async-storage expo-sqlite react-native-safe-area-context
+npx create-expo-app@latest MeuAppFirebase --template blank
+cd MeuAppFirebase
 ```
 
-O template `blank` usa JavaScript e um arquivo `App.js`. Não precisamos instalar uma biblioteca de navegação: o estado de autenticação determina qual tela aparece. Usaremos o Expo Go em Android ou iOS; este tutorial não configura SQLite para execução no navegador.
+Instale as bibliotecas de navegação (menu lateral) e do Firebase:
 
-Crie a seguinte estrutura dentro do projeto:
+```bash
+npm install @react-navigation/native @react-navigation/drawer
+npx expo install react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-reanimated react-native-worklets
+npx expo install firebase @react-native-async-storage/async-storage
+```
+
+> `npx expo install` escolhe versões compatíveis com o SDK do Expo do projeto. O `babel-preset-expo` já configura o Reanimated; não é preciso alterar o `babel.config.js`.
+
+Crie as pastas e arquivos abaixo (vazios por enquanto):
 
 ```text
-MeuCadastroDeProdutos/
-├── App.js
-├── .env.local
-├── .env.example
+MeuAppFirebase/
+├── App.js                  ← já existe, será substituído
+├── .env.local              ← credenciais (NÃO versionar)
+├── .env.example            ← modelo sem valores (pode versionar)
 └── src/
-    ├── contexts/AuthContext.js
-    ├── database/database.js
-    ├── screens/LoginScreen.js
-    ├── screens/ProductsScreen.js
     ├── services/firebase.js
     ├── styles/styles.js
-    └── utils/authErrors.js
+    └── screens/
+        ├── LoginScreen.js
+        ├── HomeScreen.js
+        ├── SobreScreen.js
+        └── ContatoScreen.js
 ```
 
-## 2. Criar e configurar o projeto Firebase
+---
 
-O Firebase oferece serviços prontos para aplicativos. Nesta aula usaremos apenas Authentication, sem Firestore nem Hosting.
+## 2. Configurar o Firebase (passo a passo)
 
-1. Acesse o [console do Firebase](https://console.firebase.google.com/) com sua conta Google.
-2. Crie um projeto chamado `MeuCadastroDeProdutos`. O Google Analytics é opcional.
-3. Na visão geral, selecione o ícone **Web** (`</>`).
-4. Registre um app com o apelido `MeuCadastroDeProdutos`. Não é necessário ativar Hosting.
-5. Copie o objeto `firebaseConfig` mostrado pelo console.
+### 2.1 Criar o projeto no console
 
-Registramos um app Web porque usamos o **Firebase JavaScript SDK**, compatível com Expo Go, mesmo executando em Android ou iOS. Consulte o [guia do Expo para Firebase](https://docs.expo.dev/guides/using-firebase/).
+1. Acesse <https://console.firebase.google.com/> com sua conta Google.
+2. Clique em **Criar projeto** → nome `MeuAppFirebase` → o Google Analytics é opcional → **Criar**.
 
-Use o plano Spark para esta atividade. Confira as [cotas e condições atuais](https://firebase.google.com/pricing) antes de usar o serviço em produção.
+### 2.2 Ativar login por e-mail e senha
 
-> A conta Google do desenvolvedor serve para acessar o console. As contas de acesso ao aplicativo serão cadastradas com e-mail e senha no Firebase Authentication.
+1. No menu à esquerda: **Criação (Build) → Authentication → Começar**.
+2. Aba **Método de login (Sign-in method)** → **E-mail/senha** → ative a primeira opção → **Salvar**.
 
-## 3. Ativar a autenticação por e-mail e senha
+### 2.3 Cadastrar um usuário de teste
 
-1. Abra **Authentication** no console.
-2. Selecione **Começar**, caso solicitado.
-3. Em **Método de login / Sign-in method**, selecione **E-mail/senha**.
-4. Ative o login por e-mail e senha e salve. O login por link de e-mail não será usado.
+1. Ainda em **Authentication**, aba **Usuários (Users)** → **Adicionar usuário**.
+2. Informe um e-mail (ex.: `aluno@teste.com`) e uma senha com pelo menos 6 caracteres.
 
-Sem essa configuração, o cadastro pode retornar `auth/operation-not-allowed`.
+É com esse usuário que você vai entrar no app.
 
-## 4. Configurar as variáveis do projeto
+### 2.4 Copiar as credenciais
 
-Crie o arquivo `.env.local` na raiz do projeto:
+1. Clique na **engrenagem ⚙️ → Configurações do projeto**.
+2. Na aba **Geral**, desça até **Seus apps** e clique no ícone **Web `</>`**.
+3. Dê um apelido (ex.: `MeuAppFirebase`), **não** marque Hosting e clique em **Registrar app**.
+4. O console mostra um trecho parecido com este — são esses valores que você vai copiar:
+
+```js
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "meuappfirebase-xxxx.firebaseapp.com",
+  projectId: "meuappfirebase-xxxx",
+  storageBucket: "meuappfirebase-xxxx.firebasestorage.app",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abc123"
+};
+```
+
+> Registramos um app **Web** porque o Expo Go usa o **Firebase JavaScript SDK**, que funciona em Android e iOS. Para rever essas credenciais depois: ⚙️ → **Configurações do projeto** → **Seus apps**.
+
+### 2.5 Colar as credenciais no projeto
+
+Na **raiz do projeto** (mesma pasta do `package.json`), crie o arquivo **`.env.local`** e cole cada valor do `firebaseConfig` na linha correspondente, **sem aspas**:
 
 ```env
-EXPO_PUBLIC_FIREBASE_API_KEY=cole-a-api-key
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=seu-projeto.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=seu-projeto
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=seu-projeto.firebasestorage.app
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=cole-o-sender-id
-EXPO_PUBLIC_FIREBASE_APP_ID=cole-o-app-id
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSy...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=meuappfirebase-xxxx.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=meuappfirebase-xxxx
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=meuappfirebase-xxxx.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1234567890
+EXPO_PUBLIC_FIREBASE_APP_ID=1:1234567890:web:abc123
 ```
 
-Substitua cada exemplo pelo valor correspondente do seu `firebaseConfig`. Não use aspas nem espaços ao redor do sinal de igual.
+| No `firebaseConfig` | No `.env.local` |
+|---|---|
+| `apiKey` | `EXPO_PUBLIC_FIREBASE_API_KEY` |
+| `authDomain` | `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` |
+| `projectId` | `EXPO_PUBLIC_FIREBASE_PROJECT_ID` |
+| `storageBucket` | `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` |
+| `messagingSenderId` | `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
+| `appId` | `EXPO_PUBLIC_FIREBASE_APP_ID` |
 
-O prefixo `EXPO_PUBLIC_` permite que o Expo disponibilize a variável no código executado pelo aplicativo. Isso também significa que os valores ficam visíveis no pacote final.
+O prefixo `EXPO_PUBLIC_` faz o Expo entregar a variável ao código do app.
 
-> A configuração de um aplicativo Firebase identifica o projeto, mas não funciona como uma senha administrativa. Mesmo assim, nunca coloque chaves privadas, senhas ou credenciais de servidor em variáveis `EXPO_PUBLIC_`. A proteção dos dados Firebase deve ser feita com Authentication, Security Rules e App Check, quando aplicável.
+### 2.6 Não versionar as chaves
 
-Acrescente `.env.local` ao `.gitignore`:
+1. Abra o `.gitignore` do projeto e confirme que existe a linha abaixo (o template do Expo já traz). Se não existir, acrescente:
 
-```gitignore
-.env.local
-```
+   ```gitignore
+   .env*.local
+   ```
 
-Crie também `.env.example`, que pode ser enviado ao GitHub sem os valores da sua turma:
+2. Crie o **`.env.example`**, que vai para o GitHub **sem os valores**, só para mostrar quais variáveis são necessárias:
 
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY=
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-EXPO_PUBLIC_FIREBASE_APP_ID=
-```
+   ```env
+   EXPO_PUBLIC_FIREBASE_API_KEY=
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+   EXPO_PUBLIC_FIREBASE_APP_ID=
+   ```
 
-Depois de criar ou alterar as variáveis, reinicie o Expo:
+3. Confira se o Git está ignorando o arquivo:
 
-```bash
-npx expo start --clear
-```
+   ```bash
+   git check-ignore -v .env.local
+   ```
 
-## 5. Inicializar o Firebase
+   Se aparecer uma linha citando o `.gitignore`, está correto. O `.env.local` também **não** deve aparecer em `git status`.
 
-Crie a pasta `src/services` e o arquivo `src/services/firebase.js`:
+> **Já fez commit do `.env.local` sem querer?** Execute `git rm --cached .env.local`, faça um novo commit e, por precaução, gere novas credenciais no console.
+>
+> A configuração Web do Firebase identifica o projeto, mas não é uma senha de administrador: ela acaba incluída no app instalado. Mesmo assim, mantê-la fora do repositório é uma boa prática. A proteção real dos dados é feita pelo Authentication e pelas regras de segurança (Security Rules).
+
+---
+
+## 3. Conectar o app ao Firebase
+
+`src/services/firebase.js`:
 
 ```js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  getReactNativePersistence,
-  initializeAuth,
-} from 'firebase/auth';
+import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -135,493 +169,333 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length === 0
-  ? initializeApp(firebaseConfig)
-  : getApp();
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 let auth;
-
 try {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-} catch (error) {
-  if (error.code === 'auth/already-initialized') {
-    auth = getAuth(app);
-  } else {
-    throw error;
-  }
+  // Guarda a sessão no aparelho: o usuário continua logado ao reabrir o app.
+  auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+} catch {
+  // Durante o recarregamento automático do Expo o Auth já pode existir.
+  auth = getAuth(app);
 }
 
 export { auth };
 ```
 
-O teste com `getApps()` evita inicializar o aplicativo Firebase mais de uma vez durante as atualizações automáticas do Expo. O bloco `try/catch` faz o mesmo para o serviço de autenticação.
+Os valores vêm do `.env.local`, portanto **nenhuma chave aparece no código**.
 
-`getReactNativePersistence(AsyncStorage)` informa onde o Firebase deve guardar a sessão. A senha não é armazenada por esse código.
+---
 
-## 6. Criar o contexto de autenticação
+## 4. Arquivo externo de estilos
 
-O contexto permitirá que diferentes telas descubram qual usuário está conectado e usem as ações de entrar, cadastrar e sair.
+No React Native os estilos são objetos JavaScript criados com `StyleSheet`. Deixando todos em um único arquivo, as telas ficam mais limpas e as cores podem ser alteradas em um só lugar.
 
-Crie a pasta `src/contexts` e o arquivo `src/contexts/AuthContext.js`:
-
-```jsx
-import { createContext, useContext, useEffect, useState } from 'react';
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
-
-import { auth } from '../services/firebase';
-
-const AuthContext = createContext(null);
-
-export function AuthProvider({ children }) {
-  const [usuario, setUsuario] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    const cancelarObservacao = onAuthStateChanged(auth, (usuarioFirebase) => {
-      setUsuario(usuarioFirebase);
-      setCarregando(false);
-    });
-
-    return cancelarObservacao;
-  }, []);
-
-  async function entrar(email, senha) {
-    return signInWithEmailAndPassword(auth, email.trim(), senha);
-  }
-
-  async function criarConta(email, senha) {
-    return createUserWithEmailAndPassword(auth, email.trim(), senha);
-  }
-
-  async function sair() {
-    return signOut(auth);
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{ usuario, carregando, entrar, criarConta, sair }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const contexto = useContext(AuthContext);
-
-  if (!contexto) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider.');
-  }
-
-  return contexto;
-}
-```
-
-O observador `onAuthStateChanged` é executado quando a verificação inicial termina e sempre que alguém entra ou sai. Por isso, não precisamos navegar manualmente para a tela inicial depois do login.
-
-## 7. Traduzir os erros mais comuns
-
-Crie `src/utils/authErrors.js`:
-
-```js
-export function obterMensagemDeAutenticacao(codigo) {
-  const mensagens = {
-    'auth/email-already-in-use': 'Este e-mail já possui uma conta.',
-    'auth/invalid-email': 'Informe um e-mail válido.',
-    'auth/invalid-credential': 'E-mail ou senha incorretos.',
-    'auth/user-disabled': 'Esta conta foi desativada.',
-    'auth/weak-password': 'A senha não atende aos requisitos de segurança.',
-    'auth/too-many-requests': 'Muitas tentativas. Aguarde e tente novamente.',
-    'auth/network-request-failed': 'Não foi possível acessar a internet.',
-    'auth/operation-not-allowed': 'Ative o login por e-mail e senha no Firebase.',
-  };
-
-  return mensagens[codigo] ?? 'Não foi possível concluir a autenticação.';
-}
-```
-
-Mensagens genéricas no login evitam revelar se determinado e-mail possui uma conta. Essa prática reduz a possibilidade de enumeração de usuários.
-
-## 8. Separar os estilos das telas
-
-Crie `src/styles/styles.js`. Este é o arquivo externo de estilos compartilhado por todas as telas:
+`src/styles/styles.js`:
 
 ```js
 import { StyleSheet } from 'react-native';
 
+const cores = {
+  primaria: '#2563EB',
+  fundo: '#F1F5F9',
+  texto: '#1E293B',
+  erro: '#B91C1C',
+};
+
 export default StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F1F5F9' },
-  conteudo: { padding: 20, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: cores.fundo, padding: 20 },
   centro: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  titulo: { fontSize: 25, fontWeight: 'bold', color: '#1E3A8A', marginBottom: 12 },
-  texto: { color: '#475569', marginBottom: 12 },
-  rotulo: { color: '#334155', fontWeight: 'bold', marginBottom: 6 },
+  titulo: { fontSize: 24, fontWeight: 'bold', color: cores.primaria, marginBottom: 16 },
+  texto: { fontSize: 16, color: cores.texto, marginBottom: 8 },
   campo: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBD5E1',
-    borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 16,
+    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#CBD5E1',
+    borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16,
   },
-  botao: {
-    backgroundColor: '#2563EB', borderRadius: 8, padding: 14,
-    alignItems: 'center', marginBottom: 12,
-  },
-  secundario: { backgroundColor: '#475569' },
-  desativado: { opacity: 0.6 },
-  textoBotao: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
-  mensagem: { color: '#B91C1C', marginBottom: 12 },
-  cartao: { backgroundColor: '#FFFFFF', padding: 16, borderRadius: 8, marginBottom: 12 },
-  nomeProduto: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  botao: { backgroundColor: cores.primaria, borderRadius: 8, padding: 14, alignItems: 'center' },
+  textoBotao: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  erro: { color: cores.erro, marginBottom: 12 },
+  cartao: { backgroundColor: '#FFF', borderRadius: 8, padding: 16, marginBottom: 12 },
+  botaoSair: { marginRight: 16 },
+  textoSair: { color: cores.primaria, fontWeight: 'bold' },
 });
 ```
 
-Nas telas, `import styles from '../styles/styles'` carrega esses estilos. Por exemplo, `style={styles.campo}` aplica o estilo de um campo. Para combinar estilos, use um array: `style={[styles.botao, styles.secundario]}`.
+Uso nas telas: `import styles from '../styles/styles';` e depois `style={styles.titulo}`.
 
-## 9. Criar a tela de login
+---
 
-Crie `src/screens/LoginScreen.js`:
+## 5. Tela de login
+
+`src/screens/LoginScreen.js`:
 
 ```jsx
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { obterMensagemDeAutenticacao } from '../utils/authErrors';
+import { ActivityIndicator, Pressable, Text, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import styles from '../styles/styles';
 
 export default function LoginScreen() {
-  const { entrar, criarConta } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [mensagem, setMensagem] = useState('');
+  const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-  async function autenticar(cadastrar = false) {
-    if (enviando) return;
-    setMensagem('');
+  async function entrar() {
     if (!email.trim() || !senha) {
-      setMensagem('Informe o e-mail e a senha.');
+      setErro('Informe e-mail e senha.');
       return;
     }
+    setErro('');
+    setCarregando(true);
     try {
-      setEnviando(true);
-      if (cadastrar) {
-        await criarConta(email, senha);
-      } else {
-        await entrar(email, senha);
-      }
-    } catch (erro) {
-      setMensagem(obterMensagemDeAutenticacao(erro.code));
+      await signInWithEmailAndPassword(auth, email.trim(), senha);
+      // Não é preciso navegar: o App.js percebe o login e mostra a Home.
+    } catch (e) {
+      setErro(e.code === 'auth/network-request-failed'
+        ? 'Sem conexão com a internet.'
+        : 'E-mail ou senha inválidos.');
     } finally {
-      setEnviando(false);
+      setCarregando(false);
     }
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}
-      keyboardShouldPersistTaps="handled">
-      <Text style={styles.titulo}>MeuCadastroDeProdutos</Text>
-      <Text style={styles.texto}>Entre para acessar seus produtos.</Text>
-      <Text style={styles.rotulo}>E-mail</Text>
-      <TextInput style={styles.campo} value={email} onChangeText={setEmail}
-        placeholder="aluno@exemplo.com" keyboardType="email-address"
-        autoCapitalize="none" autoCorrect={false} editable={!enviando} />
-      <Text style={styles.rotulo}>Senha</Text>
-      <TextInput style={styles.campo} value={senha} onChangeText={setSenha}
-        placeholder="Digite sua senha" secureTextEntry autoCapitalize="none"
-        autoCorrect={false} editable={!enviando} />
-      <Text style={styles.texto}>
-        Primeiro acesso? Informe seu e-mail e uma senha com pelo menos 6 caracteres
-        e toque em Criar conta. Se houver uma política mais exigente no Firebase,
-        a senha também deverá atendê-la.
-      </Text>
-      {mensagem !== '' && <Text style={styles.mensagem}>{mensagem}</Text>}
-      {enviando && <ActivityIndicator />}
-      <Pressable style={[styles.botao, enviando && styles.desativado]}
-        disabled={enviando} onPress={() => autenticar()}>
-        <Text style={styles.textoBotao}>Entrar</Text>
+    <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+      <Text style={styles.titulo}>Entrar</Text>
+
+      <TextInput
+        style={styles.campo}
+        placeholder="E-mail"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.campo}
+        placeholder="Senha"
+        value={senha}
+        onChangeText={setSenha}
+        secureTextEntry
+      />
+
+      {erro !== '' && <Text style={styles.erro}>{erro}</Text>}
+
+      <Pressable style={styles.botao} onPress={entrar} disabled={carregando}>
+        {carregando
+          ? <ActivityIndicator color="#FFF" />
+          : <Text style={styles.textoBotao}>Entrar</Text>}
       </Pressable>
-      <Pressable style={[styles.botao, styles.secundario, enviando && styles.desativado]}
-        disabled={enviando} onPress={() => autenticar(true)}>
-        <Text style={styles.textoBotao}>Criar conta</Text>
-      </Pressable>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 ```
 
-Para deixar o exemplo simples, a mesma tela permite entrar e criar uma conta. O Firebase faz login automaticamente após um cadastro bem-sucedido. Não precisamos chamar uma função de navegação: `onAuthStateChanged` atualiza o usuário e o `App.js` troca a tela.
+> A mensagem "E-mail ou senha inválidos" é genérica de propósito: assim o app não revela se um e-mail está ou não cadastrado.
 
-## 10. Criar o banco local de produtos
+---
 
-Crie `src/database/database.js`:
+## 6. Telas internas
 
-```js
-export async function initializeDatabase(db) {
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS produtos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      usuario_uid TEXT NOT NULL,
-      nome TEXT NOT NULL,
-      preco REAL NOT NULL,
-      quantidade INTEGER NOT NULL
-    );
-  `);
-}
-```
+### 6.1 Início
 
-O banco é novo e não exige migração do projeto anterior. `usuario_uid` identifica a conta que cadastrou o produto. Todas as consultas e alterações abaixo filtram por esse campo.
-
-## 11. Criar a área interna para cadastrar e alterar produtos
-
-Crie `src/screens/ProductsScreen.js`:
+`src/screens/HomeScreen.js`:
 
 ```jsx
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
-import { useAuth } from '../contexts/AuthContext';
+import { Text, View } from 'react-native';
+import { auth } from '../services/firebase';
 import styles from '../styles/styles';
 
-export default function ProductsScreen() {
-  const db = useSQLiteContext();
-  const { usuario, sair } = useAuth();
-  const [produtos, setProdutos] = useState([]);
-  const [idEdicao, setIdEdicao] = useState(null);
-  const [nome, setNome] = useState('');
-  const [preco, setPreco] = useState('');
-  const [quantidade, setQuantidade] = useState('');
-  const [ocupado, setOcupado] = useState(false);
-  const [mensagem, setMensagem] = useState('');
-
-  async function carregarProdutos() {
-    const resultado = await db.getAllAsync(
-      'SELECT id, nome, preco, quantidade FROM produtos WHERE usuario_uid = ? ORDER BY nome',
-      usuario.uid
-    );
-    setProdutos(resultado);
-  }
-
-  useEffect(() => {
-    carregarProdutos().catch(() => setMensagem('Não foi possível carregar os produtos.'));
-  }, [db, usuario.uid]);
-
-  function limparFormulario() {
-    setIdEdicao(null);
-    setNome('');
-    setPreco('');
-    setQuantidade('');
-  }
-
-  function editar(produto) {
-    setMensagem('');
-    setIdEdicao(produto.id);
-    setNome(produto.nome);
-    setPreco(String(produto.preco));
-    setQuantidade(String(produto.quantidade));
-  }
-
-  async function salvar() {
-    if (ocupado) return;
-    const valor = Number(preco.trim().replace(',', '.'));
-    const unidades = Number(quantidade.trim());
-    if (!nome.trim() || !preco.trim() || !quantidade.trim()
-      || !Number.isFinite(valor) || valor < 0
-      || !Number.isSafeInteger(unidades) || unidades < 0) {
-      setMensagem('Informe nome, preço não negativo e quantidade inteira não negativa.');
-      return;
-    }
-
-    try {
-      setOcupado(true);
-      setMensagem('');
-      if (idEdicao !== null) {
-        await db.runAsync(
-          'UPDATE produtos SET nome = ?, preco = ?, quantidade = ? WHERE id = ? AND usuario_uid = ?',
-          nome.trim(), valor, unidades, idEdicao, usuario.uid
-        );
-      } else {
-        await db.runAsync(
-          'INSERT INTO produtos (usuario_uid, nome, preco, quantidade) VALUES (?, ?, ?, ?)',
-          usuario.uid, nome.trim(), valor, unidades
-        );
-      }
-      limparFormulario();
-      await carregarProdutos();
-      setMensagem('Produto salvo.');
-    } catch (erro) {
-      setMensagem('Não foi possível concluir a operação. Confira a lista antes de tentar novamente.');
-    } finally {
-      setOcupado(false);
-    }
-  }
-
-  async function encerrarSessao() {
-    if (ocupado) return;
-    try {
-      setOcupado(true);
-      await sair();
-    } catch (erro) {
-      setMensagem('Não foi possível sair. Tente novamente.');
-    } finally {
-      setOcupado(false);
-    }
-  }
-
+export default function HomeScreen() {
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}
-      keyboardShouldPersistTaps="handled">
-      <Text style={styles.titulo}>Meus produtos</Text>
-      <Text style={styles.texto}>Conectado: {usuario.email}</Text>
-      <Pressable style={[styles.botao, styles.secundario]} disabled={ocupado}
-        onPress={encerrarSessao}>
-        <Text style={styles.textoBotao}>Sair</Text>
-      </Pressable>
-
-      <Text style={styles.titulo}>
-        {idEdicao === null ? 'Cadastrar produto' : 'Alterar produto'}
-      </Text>
-      <Text style={styles.rotulo}>Nome</Text>
-      <TextInput style={styles.campo} value={nome} onChangeText={setNome}
-        editable={!ocupado} placeholder="Ex.: Caderno" />
-      <Text style={styles.rotulo}>Preço (R$)</Text>
-      <TextInput style={styles.campo} value={preco} onChangeText={setPreco}
-        editable={!ocupado} keyboardType="decimal-pad" placeholder="Ex.: 12,50" />
-      <Text style={styles.rotulo}>Quantidade</Text>
-      <TextInput style={styles.campo} value={quantidade} onChangeText={setQuantidade}
-        editable={!ocupado} keyboardType="number-pad" placeholder="Ex.: 10" />
-      {mensagem !== '' && <Text style={styles.mensagem}>{mensagem}</Text>}
-      <Pressable style={[styles.botao, ocupado && styles.desativado]}
-        disabled={ocupado} onPress={salvar}>
-        <Text style={styles.textoBotao}>
-          {ocupado ? 'Aguarde...' : idEdicao === null ? 'Cadastrar' : 'Salvar alterações'}
-        </Text>
-      </Pressable>
-      {idEdicao !== null && (
-        <Pressable style={[styles.botao, styles.secundario]} disabled={ocupado}
-          onPress={limparFormulario}>
-          <Text style={styles.textoBotao}>Cancelar edição</Text>
-        </Pressable>
-      )}
-
-      <Text style={styles.titulo}>Produtos cadastrados</Text>
-      {produtos.length === 0 && <Text style={styles.texto}>Nenhum produto cadastrado.</Text>}
-      {produtos.map((produto) => (
-        <View key={produto.id} style={styles.cartao}>
-          <Text style={styles.nomeProduto}>{produto.nome}</Text>
-          <Text style={styles.texto}>
-            R$ {produto.preco.toFixed(2).replace('.', ',')} | Quantidade: {produto.quantidade}
-          </Text>
-          <Pressable style={styles.botao} disabled={ocupado} onPress={() => editar(produto)}>
-            <Text style={styles.textoBotao}>Alterar</Text>
-          </Pressable>
-        </View>
-      ))}
-    </ScrollView>
+    <View style={styles.container}>
+      <Text style={styles.titulo}>Bem-vindo!</Text>
+      <Text style={styles.texto}>Você entrou como {auth.currentUser?.email}.</Text>
+      <Text style={styles.texto}>Toque no ☰ no canto superior esquerdo para abrir o menu.</Text>
+    </View>
   );
 }
 ```
 
-Ao tocar em **Alterar**, o formulário acima da lista recebe os dados do produto. Role até ele, modifique os campos e toque em **Salvar alterações**. O `UPDATE` mantém o mesmo registro; o `INSERT` é usado somente para novos produtos. **Cancelar edição** limpa o formulário e volta ao cadastro.
+### 6.2 Sobre o usuário
 
-Os marcadores `?` passam os valores separadamente do SQL. O filtro por `usuario_uid` também está no `UPDATE`, para que a alteração corresponda à conta conectada.
-
-## 12. Montar o aplicativo e controlar o acesso
-
-Substitua o conteúdo de `App.js`:
+`src/screens/SobreScreen.js`:
 
 ```jsx
-import { ActivityIndicator, Text, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { SQLiteProvider } from 'expo-sqlite';
-import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { initializeDatabase } from './src/database/database';
-import LoginScreen from './src/screens/LoginScreen';
-import ProductsScreen from './src/screens/ProductsScreen';
-import styles from './src/styles/styles';
+import { Text, View } from 'react-native';
+import { auth } from '../services/firebase';
+import styles from '../styles/styles';
 
-function Conteudo() {
-  const { usuario, carregando } = useAuth();
-  if (carregando) {
-    return (
-      <View style={styles.centro}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.texto}>Verificando sessão...</Text>
-      </View>
-    );
-  }
-  if (!usuario) return <LoginScreen />;
+export default function SobreScreen() {
+  const usuario = auth.currentUser;
 
   return (
-    <SQLiteProvider databaseName="meucadastrodeprodutos.db" onInit={initializeDatabase}>
-      <ProductsScreen key={usuario.uid} />
-    </SQLiteProvider>
+    <View style={styles.container}>
+      <Text style={styles.titulo}>Sobre o usuário</Text>
+      <View style={styles.cartao}>
+        <Text style={styles.texto}>E-mail: {usuario?.email}</Text>
+        <Text style={styles.texto}>ID (uid): {usuario?.uid}</Text>
+        <Text style={styles.texto}>Conta criada em: {usuario?.metadata.creationTime}</Text>
+        <Text style={styles.texto}>Último acesso: {usuario?.metadata.lastSignInTime}</Text>
+      </View>
+    </View>
+  );
+}
+```
+
+### 6.3 Contato
+
+`src/screens/ContatoScreen.js`:
+
+```jsx
+import { Linking, Pressable, Text, View } from 'react-native';
+import styles from '../styles/styles';
+
+export default function ContatoScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.titulo}>Contato</Text>
+      <View style={styles.cartao}>
+        <Text style={styles.texto}>E-mail: suporte@meuapp.com</Text>
+        <Text style={styles.texto}>Telefone: (21) 99999-9999</Text>
+      </View>
+      <Pressable style={styles.botao} onPress={() => Linking.openURL('mailto:suporte@meuapp.com')}>
+        <Text style={styles.textoBotao}>Enviar e-mail</Text>
+      </Pressable>
+    </View>
+  );
+}
+```
+
+---
+
+## 7. App.js: login ou menu
+
+Substitua todo o conteúdo de `App.js`:
+
+```jsx
+import 'react-native-gesture-handler';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+
+import { auth } from './src/services/firebase';
+import styles from './src/styles/styles';
+import LoginScreen from './src/screens/LoginScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import SobreScreen from './src/screens/SobreScreen';
+import ContatoScreen from './src/screens/ContatoScreen';
+
+const Drawer = createDrawerNavigator();
+
+function BotaoSair() {
+  return (
+    <Pressable style={styles.botaoSair} onPress={() => signOut(auth)}>
+      <Text style={styles.textoSair}>Sair</Text>
+    </Pressable>
   );
 }
 
 export default function App() {
+  const [usuario, setUsuario] = useState(null);
+  const [verificando, setVerificando] = useState(true);
+
+  useEffect(() => {
+    // Executa ao abrir o app e sempre que alguém entra ou sai.
+    const cancelar = onAuthStateChanged(auth, (u) => {
+      setUsuario(u);
+      setVerificando(false);
+    });
+    return cancelar;
+  }, []);
+
+  if (verificando) {
+    return (
+      <View style={styles.centro}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <AuthProvider>
-          <Conteudo />
-        </AuthProvider>
-      </SafeAreaView>
+      {usuario ? (
+        <NavigationContainer>
+          <Drawer.Navigator screenOptions={{ headerRight: () => <BotaoSair /> }}>
+            <Drawer.Screen name="Inicio" component={HomeScreen} options={{ title: 'Início' }} />
+            <Drawer.Screen name="Sobre" component={SobreScreen} options={{ title: 'Sobre o usuário' }} />
+            <Drawer.Screen name="Contato" component={ContatoScreen} />
+          </Drawer.Navigator>
+        </NavigationContainer>
+      ) : (
+        <LoginScreen />
+      )}
     </SafeAreaProvider>
   );
 }
 ```
 
-Enquanto o Firebase verifica a sessão, aparece um indicador. Sem usuário, aparece o login. Com usuário, aparece a área interna. Ao sair, a tela de produtos é desmontada e o login reaparece; a senha digitada anteriormente não permanece no formulário. A chave `usuario.uid` reinicia o estado da tela quando a conta muda.
+Como funciona:
 
-> Este exemplo controla o acesso pela interface e separa os produtos no SQLite pelo `uid`. Authentication não criptografa nem protege automaticamente um banco local contra acesso direto ao dispositivo. Se os produtos forem armazenados no Firebase futuramente, será necessário configurar as Security Rules do serviço escolhido.
+- `onAuthStateChanged` avisa quando o usuário entra ou sai; o `App.js` então troca entre **Login** e **menu**.
+- O `Drawer.Navigator` cria o cabeçalho com o ícone **☰**, que abre o menu lateral (também abre arrastando da borda esquerda).
+- Cada `Drawer.Screen` vira um item do menu. O `title` é o texto exibido.
+- O botão **Sair** no canto direito chama `signOut`, e o app volta para o login.
 
-## 13. Executar e testar
+---
 
-Na pasta `MeuCadastroDeProdutos`, execute:
+## 8. Executar e testar
 
 ```bash
 npx expo start --clear
 ```
 
-Abra no Expo Go pelo QR code. Para criar uma conta ou entrar, o dispositivo precisa de acesso à internet.
+> Use `--clear` sempre que criar ou alterar o `.env.local`; caso contrário, o Expo pode continuar usando valores antigos.
 
-1. Confirme que o primeiro acesso mostra apenas o login.
-2. Preencha e-mail e senha e toque em **Criar conta**. A área interna deve abrir.
-3. No console, abra **Authentication > Users** e confirme a conta criada.
-4. Cadastre `Caderno`, preço `12,50`, quantidade `10`.
-5. Toque em **Alterar**, mude o preço para `15,00` e salve. Confirme que há apenas um registro, com o novo preço.
-6. Teste nome vazio, preço negativo e quantidade fracionária: o formulário deve recusar esses dados.
-7. Feche e abra o app. A sessão e os produtos devem permanecer.
-8. Toque em **Sair** e confirme o retorno ao login.
-9. Tente entrar com uma senha errada e confira a mensagem. Entre novamente com a senha correta.
-10. Saia e crie uma segunda conta: a lista deve estar vazia. Volte à primeira conta e confira seus produtos.
-11. Altere uma cor em `src/styles/styles.js` e observe a mudança nas telas.
+Abra no **Expo Go** pelo QR code (o celular precisa de internet) e confira:
 
-O cadastro de contas fica no Firebase; os produtos persistem apenas naquele dispositivo. Desinstalar o app ou limpar seus dados pode apagar o SQLite, mas não remove a conta do Firebase.
+1. O app abre na tela de login.
+2. Senha errada → aparece "E-mail ou senha inválidos".
+3. Entre com o usuário criado no passo 2.3 → abre a tela **Início**.
+4. Toque no **☰** → o menu mostra **Início**, **Sobre o usuário** e **Contato**.
+5. **Sobre o usuário** mostra o e-mail e o `uid` (compare com **Authentication → Usuários** no console).
+6. Feche e reabra o app → você continua logado.
+7. Toque em **Sair** → volta para o login.
+8. Altere a cor `primaria` em `styles.js` e veja todas as telas mudarem.
+9. Rode `git status` e confirme que o `.env.local` **não** aparece.
 
-## 14. Problemas comuns
+---
 
-| Problema | O que verificar |
+## 9. Problemas comuns
+
+| Problema | Solução |
 |---|---|
-| `auth/operation-not-allowed` | Ative o provedor E-mail/senha no console. |
-| Chave inválida ou configuração ausente | Copie os valores corretos para `.env.local` e reinicie o Expo. |
-| E-mail já cadastrado | Use **Entrar** com essa conta em vez de **Criar conta**. |
-| Senha recusada | Confira os requisitos da política de senha configurada no Firebase. |
-| Erro de rede | Confira a conexão do aparelho. |
-| Erro ao importar Firebase | Instale com `npx expo install firebase` e consulte a compatibilidade no guia do Expo. |
-| Produtos não aparecem em outro aparelho | O SQLite é local; este tutorial não sincroniza produtos. |
-| Estilos não carregam | Confira o caminho do import e o `export default` em `styles.js`. |
+| `auth/invalid-api-key` ou `auth/configuration-not-found` | Revise o `.env.local` (nomes das variáveis, sem aspas, na raiz do projeto) e rode `npx expo start --clear`. |
+| Sempre "E-mail ou senha inválidos" | Confira se o provedor **E-mail/senha** está ativado e se o usuário existe em **Authentication → Usuários**. |
+| `auth/operation-not-allowed` | Ative **E-mail/senha** em **Authentication → Método de login**. |
+| Erro com `reanimated` ou `worklets` | Execute de novo `npx expo install react-native-reanimated react-native-worklets` e reinicie com `--clear`. |
+| `Unable to resolve @react-navigation/...` | Execute novamente os comandos de instalação do passo 1. |
+| `.env.local` aparece no `git status` | Confira o `.gitignore` (passo 2.6) e, se já foi commitado, use `git rm --cached .env.local`. |
+
+---
+
+## 10. Desafios
+
+1. Adicione um botão **Criar conta** na tela de login usando `createUserWithEmailAndPassword(auth, email, senha)`.
+2. Adicione um link **Esqueci minha senha** com `sendPasswordResetEmail(auth, email)`.
+3. Crie uma quarta opção no menu (ex.: **Configurações**).
+4. Mostre as datas da tela **Sobre o usuário** no formato brasileiro com `new Date(...).toLocaleString('pt-BR')`.
 
 ## Referências
 
 - [Firebase no Expo](https://docs.expo.dev/guides/using-firebase/)
-- [Autenticação Firebase com e-mail e senha](https://firebase.google.com/docs/auth/web/password-auth)
-- [Persistência de autenticação](https://firebase.google.com/docs/auth/web/auth-state-persistence)
-- [SQLite no Expo](https://docs.expo.dev/versions/latest/sdk/sqlite/)
+- [Variáveis de ambiente no Expo](https://docs.expo.dev/guides/environment-variables/)
+- [Firebase Authentication — e-mail e senha](https://firebase.google.com/docs/auth/web/password-auth)
+- [React Navigation — Drawer](https://reactnavigation.org/docs/drawer-navigator)
 - [Estilos no React Native](https://reactnative.dev/docs/style)
