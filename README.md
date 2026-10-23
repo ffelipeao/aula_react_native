@@ -25,6 +25,7 @@ Recomenda-se seguir os materiais na ordem abaixo:
 | 6 | [Autenticação com Firebase](6-tutorial_autenticacao_firebase_email_senha.md) | Novo app com login no Firebase, menu lateral (drawer), estilos externos e credenciais fora do Git |
 | 6.1 | [Cadastro de usuários no Firebase](6.1-tutorial_cadastro_usuarios_firebase.md) | Criar conta pelo app, cadastro de outros usuários pelo menu e nome do usuário |
 | 6.2 | [CRUD de produtos com Firestore](6.2-tutorial_crud_produtos_firestore.md) | Cloud Firestore, regras de segurança, cadastro, consulta, alteração e exclusão de produtos |
+| 7 | [Build e geração de APK para Android](7-tutorial_build_apk_android_eas.md) | Conta Expo, EAS Build, APK e AAB, configuração do Firebase, instalação e atualização no Android |
 
 ## 🧭 Trilha de aprendizagem
 
@@ -38,7 +39,8 @@ Ao concluir a sequência, o estudante terá praticado:
 6. navegação entre páginas;
 7. armazenamento local com SQLite;
 8. cadastro, consulta, alteração e exclusão de dados;
-9. autenticação com e-mail e senha usando Firebase.
+9. autenticação com e-mail e senha usando Firebase;
+10. geração de APK com EAS Build e instalação do aplicativo no Android.
 
 ## 🛠️ Pré-requisitos
 
@@ -60,7 +62,7 @@ O primeiro tutorial orienta a instalação e a verificação dessas ferramentas.
 4. Discuta o resultado antes de avançar para o próximo conceito.
 5. Use os desafios finais como exercício individual ou atividade avaliativa.
 
-Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo desenvolvido no tutorial 4. O tutorial 6 começa um aplicativo novo, com autenticação Firebase, que é continuado nos tutoriais 6.1 e 6.2.
+Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo desenvolvido no tutorial 4. O tutorial 6 começa um aplicativo novo, com autenticação Firebase, que é continuado nos tutoriais 6.1 e 6.2. O tutorial 7 usa esse aplicativo para demonstrar a geração e a instalação de um APK com EAS Build, processo que também se aplica aos projetos Expo anteriores.
 
 ## 📂 Organização do repositório
 
@@ -74,6 +76,7 @@ Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo dese
 ├── 6-tutorial_autenticacao_firebase_email_senha.md
 ├── 6.1-tutorial_cadastro_usuarios_firebase.md
 ├── 6.2-tutorial_crud_produtos_firestore.md
+├── 7-tutorial_build_apk_android_eas.md
 └── README.md
 ```
 
