@@ -386,6 +386,8 @@ Se mudar os valores públicos do Firebase, gere outro APK para incorporar a conf
 
 ### 12.1 EAS Build local
 
+Para o build/deploy **local** do projeto da aula, configure **JDK 17** antes de executar os comandos. Os tutoriais [8 — Windows](8-tutorial_build_apk_android_studio.md), [8.1 — macOS](8.1-tutorial_build_apk_android_studio_macos.md) e [8.2 — Linux](8.2-tutorial_build_apk_android_studio_linux.md) trazem instalação, `JAVA_HOME` e verificação do Gradle. O `JAVA_HOME` do seu computador não seleciona o Java do **EAS na nuvem**; o ambiente remoto depende da imagem de build e do SDK do projeto.
+
 É possível executar o fluxo do EAS no próprio computador. Essa alternativa **continua exigindo autenticação Expo** e pode acessar o serviço para verificar o projeto e obter credenciais.
 
 Antes, prepare Node.js, Java/JDK compatível, Android SDK/NDK e as variáveis do ambiente Android. O EAS local oferece suporte a **macOS e Linux**. No Windows, WSL pode ser usado, mas não tem suporte oficial para esse fluxo; para a aula no Windows, o build em nuvem evita essa configuração.

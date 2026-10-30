@@ -1,7 +1,9 @@
-# Tutorial 8 — Instalação do Android Studio e geração de APK local
+# Tutorial 8 — Android Studio e geração de APK no Windows 11
 ### ARA0089 — Programação para Dispositivos Móveis em Android
 
-Neste roteiro vamos instalar e configurar o **Android Studio**, preparar um projeto **React Native com Expo** e gerar um **APK de release assinado** no próprio computador. O caminho principal usa **Windows 11**; as seções finais adaptam a instalação para **Linux e macOS**.
+Neste roteiro vamos instalar e configurar o **Android Studio**, preparar um projeto **React Native com Expo** e gerar um **APK de release assinado** no próprio computador. Este roteiro usa exclusivamente **Windows 11**.
+
+Escolha o roteiro do seu sistema: [Windows 11](8-tutorial_build_apk_android_studio.md), [macOS](8.1-tutorial_build_apk_android_studio_macos.md) ou [Linux](8.2-tutorial_build_apk_android_studio_linux.md). Cada arquivo contém o fluxo completo de instalação e geração do APK.
 
 Vamos continuar o **MeuAppFirebase**, dos tutoriais [6](6-tutorial_autenticacao_firebase_email_senha.md), [6.1](6.1-tutorial_cadastro_usuarios_firebase.md) e [6.2](6.2-tutorial_crud_produtos_firestore.md). O procedimento também serve para os outros aplicativos Expo da disciplina.
 
@@ -125,30 +127,44 @@ sdkmanager.bat --licenses
 
 Leia e aceite as licenças necessárias quando solicitado. Se `sdkmanager.bat` não for encontrado, confira a instalação de **Command-line Tools (latest)** e o `Path`.
 
-### 2.6. Configurar o Java usado pelo Gradle
+### 2.6. Instalar e configurar Java 17 para o build/deploy
 
-O Android Studio inclui um runtime Java, mas a versão usada para compilar precisa ser compatível com o **Android Gradle Plugin (AGP)** e o Gradle do projeto.
+**Use o JDK 17 para compilar e instalar o app desta aula.** Essa é a versão recomendada na [configuração de ambiente do React Native](https://reactnative.dev/docs/set-up-your-environment), para evitar incompatibilidades com versões mais novas do Java. Instalar o Android Studio não garante que o Gradle usará Java 17. Se você atualizar Expo, React Native ou AGP no futuro, confira novamente os requisitos antes de manter essa configuração.
 
-1. Na IDE, abra **Settings > Build, Execution, Deployment > Build Tools > Gradle**.
-2. Confira o campo **Gradle JDK** e selecione um JDK compatível com o projeto.
-3. Para os comandos no terminal, configure `JAVA_HOME` apontando para esse mesmo JDK e acrescente `%JAVA_HOME%\bin` ao `Path`.
-
-O JDK incluído na instalação padrão costuma estar em:
-
-```text
-C:\Program Files\Android\Android Studio\jbr
-```
-
-Use esse caminho somente se a versão for compatível. Caso o projeto exija outra versão, instale-a e selecione-a na IDE e em `JAVA_HOME`. Não aponte `JAVA_HOME` para a subpasta `bin`.
-
-Abra um novo terminal e confira:
+No PowerShell, instale o **JDK**, não somente o JRE:
 
 ```powershell
-java -version
-$env:JAVA_HOME
+winget install --id EclipseAdoptium.Temurin.17.JDK --exact
 ```
 
-A IDE e o terminal podem selecionar JDKs diferentes. A documentação de [versões Java nos builds Android](https://developer.android.com/build/jdks) explica os critérios de compatibilidade.
+Se não tiver `winget`, instale Temurin **17 JDK** pelo [site do Adoptium](https://adoptium.net/installation). Depois localize a pasta instalada:
+
+```powershell
+Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory
+```
+
+Copie o caminho exato da pasta `jdk-17...` e substitua o exemplo abaixo. Não inclua `bin` no `JAVA_HOME`:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.SEUA_VERSAO-hotspot'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+java -version
+javac -version
+```
+
+Os dois comandos devem mostrar **17.x**. Para persistir o diretório validado na conta do usuário:
+
+```powershell
+[Environment]::SetEnvironmentVariable('JAVA_HOME', $env:JAVA_HOME, 'User')
+```
+
+Em **Editar as variáveis de ambiente da sua conta > Path**, adicione `%JAVA_HOME%\bin` antes de outras entradas Java. Reabra os terminais e confira `java -version`. Isso evita sobrescrever todo o `Path` com um comando.
+
+Na IDE, abra **Settings > Build, Execution, Deployment > Build Tools > Gradle**. Em **Gradle JDK**, escolha **JAVA_HOME** ou adicione a pasta do **JDK 17** instalada. Não selecione automaticamente o `jbr` do Android Studio: ele pode ser de outra versão. Reinicie a IDE após mudar variáveis de ambiente.
+
+O Android Studio pode continuar usando seu runtime próprio; estamos selecionando Java 17 para o **Gradle do aplicativo**. A IDE e o terminal têm seleções independentes, conforme a [documentação de JDKs Android](https://developer.android.com/build/jdks).
+
+Se `sdkmanager.bat` exigir Java mais novo, use o runtime do Android Studio somente em um terminal separado para instalar o SDK. Volte ao terminal configurado com Java 17 antes do build.
 
 ## 3. Preparar o aplicativo Expo
 
@@ -386,345 +402,7 @@ Se gerencia o Android manualmente, atualize os campos de versão no projeto nati
 
 Um APK anterior do EAS pode ter outra assinatura. Criar uma chave local nova não permite atualizar esse APK. Para continuidade, use a mesma chave com que ele foi assinado. Desinstalar para trocar a assinatura remove os dados locais do app; preserve o que precisar antes de optar por isso.
 
-## 11. Linux — instalar e configurar pelo terminal
-
-Os comandos abaixo usam **Ubuntu/Debian com Bash e computador x86_64**. Em outras distribuições, adapte o gerenciador de pacotes e os nomes dos pacotes. Confira a arquitetura com `uname -m` e o suporte na [instalação oficial do Android Studio](https://developer.android.com/studio/install#linux).
-
-### 11.1. Instalar ferramentas básicas e Java
-
-```bash
-sudo apt update
-sudo apt install -y curl git unzip tar xz-utils build-essential openjdk-17-jdk
-java -version
-git --version
-```
-
-O exemplo usa **JDK 17**. Confirme a compatibilidade com o Gradle/AGP do projeto, como explicado na seção 2.6; se precisar de outra versão, instale-a antes de continuar.
-
-### 11.2. Instalar Node.js com NVM
-
-O NVM permite escolher a versão do Node por projeto. Se já usa NVM, pule a clonagem. Para uma instalação nova:
-
-```bash
-git clone https://github.com/nvm-sh/nvm.git "$HOME/.nvm"
-cd "$HOME/.nvm"
-git checkout "$(git describe --abbrev=0 --tags --match 'v[0-9]*')"
-```
-
-Acrescente ao `~/.bashrc` com um editor de terminal:
-
-```bash
-nano ~/.bashrc
-```
-
-Cole no final, uma única vez:
-
-```bash
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-```
-
-Salve, saia do editor e execute:
-
-```bash
-source ~/.bashrc
-nvm install --lts
-nvm alias default 'lts/*'
-node --version
-npm --version
-```
-
-Use uma LTS compatível com seu Expo SDK. Se o projeto possui `.nvmrc`, execute `nvm install` e `nvm use` na raiz do app para respeitar a versão definida. Consulte a [instalação oficial do NVM](https://github.com/nvm-sh/nvm#git-install). Não execute `npm` ou `npx` com `sudo`.
-
-### 11.3. Baixar e instalar Android Studio
-
-Na [página oficial de download](https://developer.android.com/studio), copie a URL do pacote **Linux `.tar.gz` estável**, após ler os termos. No terminal, substitua a URL abaixo pelo link copiado:
-
-```bash
-mkdir -p "$HOME/Downloads/android-setup" "$HOME/Aplicativos"
-curl -fL 'COLE_AQUI_A_URL_DO_ANDROID_STUDIO_LINUX' -o "$HOME/Downloads/android-setup/android-studio.tar.gz"
-tar -xzf "$HOME/Downloads/android-setup/android-studio.tar.gz" -C "$HOME/Aplicativos"
-ls "$HOME/Aplicativos/android-studio/bin"
-```
-
-Se essa pasta já contém outra instalação, escolha uma pasta diferente para não misturar versões. Para iniciar, use o executável presente no pacote:
-
-```bash
-"$HOME/Aplicativos/android-studio/bin/studio"
-```
-
-Se o pacote fornecer `studio.sh`, execute esse arquivo. A instalação é feita pelo terminal; a IDE abre uma interface gráfica para sincronizar e assinar o aplicativo.
-
-### 11.4. Configurar Java e caminhos persistentes
-
-Descubra o diretório do JDK 17 instalado:
-
-```bash
-update-java-alternatives --list
-```
-
-Copie o caminho da instalação Java 17 mostrado, por exemplo `/usr/lib/jvm/java-1.17.0-openjdk-amd64`. Abra `nano ~/.bashrc` e acrescente, ajustando `JAVA_HOME`:
-
-```bash
-export JAVA_HOME="/usr/lib/jvm/java-1.17.0-openjdk-amd64"
-export ANDROID_HOME="$HOME/Android/Sdk"
-export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-```
-
-Carregue as configurações:
-
-```bash
-source ~/.bashrc
-java -version
-```
-
-Se usa Zsh, edite e carregue `~/.zshrc` nas etapas correspondentes. Continue com o SDK na seção 12.4, que atende aos dois sistemas.
-
-### 11.5. Emulador e USB no Ubuntu/Debian — opcionais
-
-Para usar o emulador com KVM em uma máquina compatível:
-
-```bash
-sudo apt install -y qemu-kvm
-sudo usermod -aG kvm "$USER"
-ls -l /dev/kvm
-```
-
-Encerre a sessão do sistema e entre novamente para aplicar o grupo. A virtualização também precisa estar habilitada no BIOS/UEFI. Veja o [guia oficial de aceleração](https://developer.android.com/studio/run/emulator-acceleration).
-
-Se o aparelho USB não tiver permissão, no Ubuntu instale as regras e inclua seu usuário no grupo:
-
-```bash
-sudo apt install -y android-sdk-platform-tools-common
-sudo usermod -aG plugdev "$USER"
-```
-
-Entre novamente na sessão, reconecte o cabo e aceite a autorização de depuração no celular. Os pacotes e grupos podem variar em outras distribuições.
-
-## 12. macOS — instalar e configurar pelo terminal
-
-Use o aplicativo **Terminal**, com Zsh. A instalação abaixo usa Homebrew e mantém um único SDK em `~/Library/Android/sdk`.
-
-### 12.1. Instalar Homebrew
-
-Confira se já está instalado:
-
-```bash
-command -v brew
-```
-
-Se o comando não mostrar um caminho, instale pelo comando divulgado no [site oficial do Homebrew](https://brew.sh/):
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-Leia as instruções exibidas pelo instalador. Em seguida, execute o bloco correspondente à arquitetura do computador para habilitar o Homebrew.
-
-**Apple Silicon (`uname -m` mostra `arm64`):**
-
-```bash
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
-```
-
-**Intel (`uname -m` mostra `x86_64`):**
-
-```bash
-echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/usr/local/bin/brew shellenv)"
-```
-
-Acrescente a linha ao perfil somente uma vez. O Homebrew pode solicitar as ferramentas de linha de comando da Apple durante a instalação; siga as instruções apresentadas. O Xcode completo não é necessário para gerar APK Android.
-
-### 12.2. Instalar Android Studio, Git, Java e Node.js
-
-```bash
-brew install git
-brew install --cask android-studio
-brew install --cask temurin@17
-```
-
-Os comandos dos aplicativos estão documentados nos catálogos oficiais do Homebrew: [Android Studio](https://formulae.brew.sh/cask/android-studio) e [Temurin 17](https://formulae.brew.sh/cask/temurin@17). O Java 17 é o exemplo deste roteiro; confirme os requisitos do projeto antes de selecioná-lo no Gradle.
-
-Para Node.js, siga a clonagem do NVM na seção 11.2. No macOS, acrescente as duas linhas de inicialização do NVM ao **`~/.zshrc`**, usando `nano ~/.zshrc`, e execute:
-
-```bash
-source ~/.zshrc
-nvm install --lts
-nvm alias default 'lts/*'
-node --version
-npm --version
-```
-
-Se houver `.nvmrc` no app, prefira `nvm install` e `nvm use` dentro dele.
-
-### 12.3. Configurar Java e caminhos persistentes
-
-Liste os JDKs disponíveis:
-
-```bash
-/usr/libexec/java_home -V
-```
-
-Abra `nano ~/.zshrc` e acrescente uma única vez:
-
-```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
-export ANDROID_HOME="$HOME/Library/Android/sdk"
-export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-```
-
-Salve e carregue:
-
-```bash
-source ~/.zshrc
-java -version
-echo "$JAVA_HOME"
-```
-
-### 12.4. Instalar Android Command-line Tools — Linux e macOS
-
-Execute esta etapa **depois de configurar `JAVA_HOME` e `ANDROID_HOME`** na seção do seu sistema. Se já possui `cmdline-tools/latest/bin/sdkmanager` no SDK configurado, pule a extração.
-
-Na página do Android Studio, localize [Command line tools only](https://developer.android.com/studio#command-line-tools-only) e copie a URL do ZIP correspondente a **Linux** ou **Mac**. Substitua o texto da URL antes de executar:
-
-```bash
-mkdir -p "$HOME/Downloads/android-sdk-cli" "$ANDROID_HOME/cmdline-tools"
-curl -fL 'COLE_AQUI_A_URL_DO_ZIP_COMMAND_LINE_TOOLS_DO_SEU_SISTEMA' -o "$HOME/Downloads/android-sdk-cli/tools.zip"
-unzip "$HOME/Downloads/android-sdk-cli/tools.zip" -d "$HOME/Downloads/android-sdk-cli/extraido"
-mv "$HOME/Downloads/android-sdk-cli/extraido/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-sdkmanager --version
-```
-
-Use uma pasta de extração nova se já executou esses comandos antes. A estrutura correta é `cmdline-tools/latest/bin/sdkmanager`, sem uma segunda pasta `cmdline-tools` dentro de `latest`. O procedimento segue o [guia oficial do sdkmanager](https://developer.android.com/tools/sdkmanager).
-
-Se o `sdkmanager` informar que exige um Java mais novo, use para as ferramentas do SDK o runtime incluído no Android Studio, desde que atenda à versão solicitada. Abra um **terminal separado** e execute o bloco do seu sistema:
-
-**Linux:**
-
-```bash
-export JAVA_HOME="$HOME/Aplicativos/android-studio/jbr"
-export PATH="$JAVA_HOME/bin:$PATH"
-java -version
-sdkmanager --version
-```
-
-**macOS:**
-
-```bash
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
-java -version
-sdkmanager --version
-```
-
-Continue a instalação do SDK nesse terminal. Ao terminar, feche-o e abra outro para voltar ao JDK configurado no perfil. O JDK usado pelo **Gradle do aplicativo** deve continuar atendendo aos requisitos do projeto; as ferramentas podem exigir versões diferentes.
-
-### 12.5. Instalar componentes do SDK pelo terminal
-
-Em ambos os sistemas:
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" --licenses
-sdkmanager --sdk_root="$ANDROID_HOME" --list
-sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools"
-```
-
-Leia as licenças e responda às perguntas. Instale plataforma e Build-Tools com as versões exigidas pelo projeto. **O exemplo abaixo usa API 35 e Build-Tools 35.0.0 somente para demonstrar a sintaxe**; substitua pelos valores do seu Expo/Gradle:
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"
-```
-
-Para NDK e CMake, quando solicitados, copie os identificadores exatos apresentados por `sdkmanager --list` e pelo erro de build:
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" "ndk;VERSAO_EXIGIDA" "cmake;VERSAO_EXIGIDA"
-```
-
-Substitua os marcadores; não execute literalmente `VERSAO_EXIGIDA`. Depois confira:
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" --licenses
-sdkmanager --sdk_root="$ANDROID_HOME" --list_installed
-adb --version
-adb devices
-```
-
-A opção `--sdk_root` garante que os pacotes sejam instalados no mesmo SDK que a IDE usará. Na IDE, confira **Android SDK Location** e **Gradle JDK** conforme as seções 2.3 e 2.6. Se o assistente inicial perguntar pelo SDK existente, selecione o diretório configurado em `ANDROID_HOME`.
-
-### 12.6. Emulador pelo terminal — opcional
-
-Liste as imagens disponíveis:
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" --list
-```
-
-Escolha uma imagem compatível com o processador. Exemplos de sintaxe com API 35:
-
-**Linux x86_64 ou Mac Intel:**
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" "emulator" "system-images;android-35;google_apis;x86_64"
-avdmanager create avd --name AulaAndroid --package "system-images;android-35;google_apis;x86_64"
-```
-
-**Mac Apple Silicon:**
-
-```bash
-sdkmanager --sdk_root="$ANDROID_HOME" "emulator" "system-images;android-35;google_apis;arm64-v8a"
-avdmanager create avd --name AulaAndroid --package "system-images;android-35;google_apis;arm64-v8a"
-```
-
-Execute somente o bloco adequado ao computador. Responda `no` se perguntado sobre criar perfil de hardware personalizado. Inicie o dispositivo:
-
-```bash
-emulator -list-avds
-emulator -avd AulaAndroid
-```
-
-O último comando mantém o emulador em execução; use outro terminal para continuar. Um celular físico dispensa essa etapa.
-
-### 12.7. Preparar e abrir o app pelo terminal
-
-Na pasta do aplicativo, instale as dependências e gere o Android:
-
-```bash
-cd "$HOME/Projetos/MeuAppFirebase"
-npm ci
-npx expo-doctor
-npx expo install --check
-npx expo prebuild --platform android
-```
-
-Use `npm install` no lugar de `npm ci` se o projeto não possuir lockfile. Configure o app e o Firebase conforme a seção 3 antes do prebuild.
-
-**No macOS:**
-
-```bash
-open -a "Android Studio" "$PWD/android"
-```
-
-**No Linux:**
-
-```bash
-"$HOME/Aplicativos/android-studio/bin/studio" "$PWD/android"
-```
-
-Adapte para `studio.sh` se esse for o inicializador disponível. A partir daqui, siga as seções **5 a 10** para sincronizar, assinar o release e instalar o APK. Para conferir o Java efetivamente usado pelo Gradle no terminal:
-
-```bash
-cd android
-chmod +x gradlew
-./gradlew --version
-cd ..
-```
-
-Se o Node instalado pelo NVM não for encontrado pela IDE aberta pelo menu do sistema, abra-a pelo terminal com `nvm use` já executado. Isso permite que ela herde o `PATH` correto.
-
-## 13. Comandos Gradle opcionais
+## 11. Comandos Gradle opcionais
 
 O fluxo principal de assinatura deste roteiro usa a IDE. Para diagnóstico ou debug, você também pode executar o Gradle Wrapper fornecido pelo projeto.
 
@@ -737,25 +415,45 @@ cd android
 cd ..
 ```
 
-**Linux/macOS:**
+Para um build de release, a tarefa é `assembleRelease`, mas **a tarefa sozinha não configura sua chave de distribuição**. Alguns templates usam a chave de debug até na configuração release. O assistente de assinatura da seção 8 seleciona explicitamente o keystore; para automatizar no terminal, configure e verifique a assinatura release no Gradle sem colocar senhas no repositório.
 
-```bash
+### 11.1. Selecionar Java 17 e fazer deploy de desenvolvimento
+
+Na raiz do aplicativo, **depois de gerar `android/`**, execute o bloco abaixo. A variável persistente precisa ter sido configurada na seção 2.6.
+
+```powershell
+$env:JAVA_HOME = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+java -version
+javac -version
 cd android
-chmod +x gradlew
-./gradlew --version
-./gradlew assembleDebug
+.\gradlew.bat --stop
+.\gradlew.bat --version
+.\gradlew.bat installDebug
 cd ..
 ```
 
-Para um build de release, a tarefa é `assembleRelease`, mas **a tarefa sozinha não configura sua chave de distribuição**. Alguns templates usam a chave de debug até na configuração release. O assistente de assinatura da seção 8 seleciona explicitamente o keystore; para automatizar no terminal, configure e verifique a assinatura release no Gradle sem colocar senhas no repositório.
+Confira **17** tanto no Java quanto na JVM usada pelo Gradle. `--stop` encerra daemons anteriores; `installDebug` compila e instala no emulador ou celular conectado. Deixe somente o dispositivo desejado conectado. O debug normalmente precisa de Metro: execute `npx expo start` na raiz em outro terminal (`--dev-client` se usar `expo-dev-client`).
 
-## 14. Problemas comuns
+Se o Gradle ainda usar outra JVM, revise **Gradle JDK**, `org.gradle.java.home` em propriedades locais/do usuário e, se existir, `android/gradle/gradle-daemon-jvm.properties`. Critérios do daemon podem prevalecer sobre `JAVA_HOME`; confira a versão efetiva antes de compilar. Não grave caminhos pessoais ou senhas no Git. Veja os [critérios da JVM do Gradle](https://docs.gradle.org/current/userguide/gradle_daemon.html#sec:daemon_jvm_criteria).
+
+### 11.2. Gerar o release com Java 17
+
+Com Java 17 selecionado, use o assistente da **seção 8** para gerar o APK assinado. Para automatizar pelo terminal, configure primeiro a assinatura release no Gradle, com sua chave e senhas fora do Git. Só depois execute, na pasta `android/`:
+
+```powershell
+.\gradlew.bat assembleRelease
+```
+
+O APK costuma ficar em `android/app/build/outputs/apk/release/`. Instale-o com `adb install -r` conforme a seção 9. Java 17 é uma configuração de compilação do computador; não precisa ser instalado no celular.
+
+## 12. Problemas comuns
 
 | Problema | O que verificar |
 |---|---|
 | `adb` não reconhecido | Instalação de Platform-Tools, `Path` e reabertura do terminal |
 | `SDK location not found` | `ANDROID_HOME` e `android/local.properties` |
-| Licenças não aceitas | Execute `sdkmanager --licenses` (`sdkmanager.bat` no Windows) |
+| Licenças não aceitas | Execute `sdkmanager.bat --licenses` |
 | SDK, NDK ou CMake ausente | Instale a versão indicada no erro pelo SDK Manager |
 | Java/Gradle incompatível | Compare Gradle JDK da IDE, `JAVA_HOME` e saída de `gradlew --version` |
 | Download de dependências falha | Confira internet, proxy e modo offline do Gradle; leia o erro de download |
@@ -770,10 +468,10 @@ Para um build de release, a tarefa é `assembleRelease`, mas **a tarefa sozinha 
 
 Não altere versões de Gradle, Java, React Native e Expo simultaneamente para tentar resolver uma falha. Leia a primeira causa relevante no painel Build e corrija o requisito indicado.
 
-## 15. Checklist e atividade
+## 13. Checklist e atividade
 
 - [ ] Android Studio e componentes do SDK instalados.
-- [ ] Node, SDK e JDK acessíveis nas ferramentas utilizadas.
+- [ ] Node e SDK acessíveis; `java`, `javac` e a JVM do Gradle conferidos na versão 17.
 - [ ] Projeto verificado com Expo Doctor.
 - [ ] Pacote Android e versões definidos.
 - [ ] Firebase configurado localmente, quando utilizado.
