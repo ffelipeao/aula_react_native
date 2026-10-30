@@ -26,6 +26,7 @@ Recomenda-se seguir os materiais na ordem abaixo:
 | 6.1 | [Cadastro de usuários no Firebase](6.1-tutorial_cadastro_usuarios_firebase.md) | Criar conta pelo app, cadastro de outros usuários pelo menu e nome do usuário |
 | 6.2 | [CRUD de produtos com Firestore](6.2-tutorial_crud_produtos_firestore.md) | Cloud Firestore, regras de segurança, cadastro, consulta, alteração e exclusão de produtos |
 | 7 | [Build e geração de APK para Android](7-tutorial_build_apk_android_eas.md) | Conta Expo, EAS Build, APK e AAB, configuração do Firebase, instalação e atualização no Android |
+| 8 | [Instalação do Android Studio e geração de APK local](8-tutorial_build_apk_android_studio.md) | Windows 11, alternativas Linux/macOS, Android SDK, prebuild Expo, assinatura e APK de release |
 
 ## 🧭 Trilha de aprendizagem
 
@@ -41,6 +42,7 @@ Ao concluir a sequência, o estudante terá praticado:
 8. cadastro, consulta, alteração e exclusão de dados;
 9. autenticação com e-mail e senha usando Firebase;
 10. geração de APK com EAS Build e instalação do aplicativo no Android.
+11. configuração do Android Studio e geração local de APK assinado.
 
 ## 🛠️ Pré-requisitos
 
@@ -64,6 +66,8 @@ O primeiro tutorial orienta a instalação e a verificação dessas ferramentas.
 
 Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo desenvolvido no tutorial 4. O tutorial 6 começa um aplicativo novo, com autenticação Firebase, que é continuado nos tutoriais 6.1 e 6.2. O tutorial 7 usa esse aplicativo para demonstrar a geração e a instalação de um APK com EAS Build, processo que também se aplica aos projetos Expo anteriores.
 
+O tutorial 8 apresenta a alternativa de compilação local pelo Android Studio, com foco no Windows 11 e adaptações para Linux e macOS. Ele pode ser seguido sem configurar o EAS do tutorial 7.
+
 ## 📂 Organização do repositório
 
 ```text
@@ -77,6 +81,7 @@ Os tutoriais 3 a 6 formam uma progressão. O tutorial 5 parte do aplicativo dese
 ├── 6.1-tutorial_cadastro_usuarios_firebase.md
 ├── 6.2-tutorial_crud_produtos_firestore.md
 ├── 7-tutorial_build_apk_android_eas.md
+├── 8-tutorial_build_apk_android_studio.md
 └── README.md
 ```
 
